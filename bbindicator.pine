@@ -1,0 +1,40 @@
+//@version=5
+indicator(title="BB Volatility Curve [LeonidasCrypto]", shorttitle="BBVL-G", overlay=false)
+
+// Input Parameters
+int length = input.int(20, minval=1, title="SMA Length")
+int rsiLength = input.int(14, title="RSI Length")
+float stdDevMultiplier = input.float(2.0, minval=0.001, maxval=50, title="StdDev Multiplier")
+int wmaLength = input.int(10, title="WMA Length")
+int longRoCLength = input.int(14, title="Long RoC Length")
+int shortRoCLength = input.int(11, title="Short RoC Length")
+bool showMarketPeriod= input.bool(true,title = "Show Time to trade")
+// Customizable Color Inputs
+color colorBelowZero = input.color(color.aqua, title="Color Below Zero")
+color colorAboveZero = input.color(color.purple, title="Color Above Zero")
+color zeroLineColor = input.color(color.gray, title="Zero Line Color")
+color fillColor = input.color(color.orange, title="Fill Color", inline="Fill")
+
+// Bollinger Bands Calculation
+sma = ta.sma(close, length)
+stdDev = stdDevMultiplier * ta.stdev(close, length)
+upperBand = sma + stdDev
+lowerBand = sma - stdDev
+bbWidth = (upperBand - lowerBand) / sma
+
+// RSI Calculation
+rsiBBW = ta.rsi(bbWidth, rsiLength)
+
+// Rate of Change (RoC) and Weighted Moving Average (WMA) Calculation
+rocSum = ta.roc(rsiBBW, longRoCLength) + ta.roc(rsiBBW, shortRoCLength)
+wmaCurve = ta.wma(rocSum, wmaLength)
+
+// Implementing Gradient Color Based on Curve Value
+color colorGradient = wmaCurve < 0 ?  color.from_gradient(wmaCurve, ta.lowest(wmaCurve, 25), 0, colorBelowZero, fillColor) :  color.from_gradient(wmaCurve, 0, ta.highest(wmaCurve, 25), fillColor, colorAboveZero)
+
+// Plotting
+p1 = plot(wmaCurve, title="BB Volatility Curve", color=colorGradient, linewidth=2)
+p2 = plot(0, "Zero Line", color=zeroLineColor)
+
+// Filling area under the curve
+fill(p1, p2, color=colorGradient)
